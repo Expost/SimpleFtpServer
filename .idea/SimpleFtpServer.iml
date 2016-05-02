@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="CPP_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/CTransfer.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CFtpTransfer.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CTransfer.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CManageClient.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/jsoncpp.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CManageClient.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Common.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CPasvDataTransfer.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CClient.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CFtpCommand.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CThread.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CClient.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Common.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CThread.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CPasvDataTransfer.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CFtpCommand.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/json/json.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/json/json-forwards.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CFtpTransfer.h" isTestSource="false" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module-library">
+      <library name="Header Search Paths">
+        <CLASSES>
+          <root url="file:///usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed" />
+          <root url="file:///usr/lib/gcc/x86_64-linux-gnu/4.8/include" />
+          <root url="file:///usr/include" />
+          <root url="file:///usr/local/include" />
+        </CLASSES>
+        <SOURCES>
+          <root url="file:///usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed" />
+          <root url="file:///usr/lib/gcc/x86_64-linux-gnu/4.8/include" />
+          <root url="file:///usr/include" />
+          <root url="file:///usr/local/include" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+  </component>
+</module>

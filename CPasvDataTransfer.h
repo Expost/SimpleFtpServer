@@ -20,7 +20,6 @@ private:
     string m_Msg;
 
     int m_ControlSock;
-
     int DispatchCommand(int client_fd);
     ssize_t ControlSockSendMsg(const string &msg);
     void Execute();

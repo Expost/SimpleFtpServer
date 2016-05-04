@@ -60,13 +60,8 @@ string CClient::GetUserDir() const{
 }
 
 bool CClient::SetClientName(const string &name){
-    if(!name.empty()){
-        m_Name = name;
-        return true;
-    }
-    else{
-        return false;
-    }
+    m_Name = name;
+    return true;
 }
 
 string CClient::GetClientName() const{
@@ -82,13 +77,7 @@ ssize_t CClient::sendMsg(const string &msg){
 }
 
 bool CClient::SetClientPasvDataTransfer(CPasvDataTransfer *pDataTransfer) {
-    if(pDataTransfer != NULL){
-        m_PasvDataTransfer = pDataTransfer;
-        return true;
-    }
-    else{
-        return false;
-    }
+    m_PasvDataTransfer = pDataTransfer;
 }
 
 CPasvDataTransfer *CClient::GetClientPasvDataTransfer() const{

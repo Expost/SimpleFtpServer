@@ -13,7 +13,8 @@ class CCommand {
 protected:
     string m_Command;
     string m_Args;
-    static string strInfo;
+
+    static const string& GetUserInfo();
 public:
 
     virtual bool MatchCommand(string inCommand);

@@ -5,7 +5,7 @@
 #include "CFtpTransfer.h"
 
 CFtpTransfer::CFtpTransfer(string ip,int port):CTransfer(ip,port){
-    if(!m_ClientManager.LoadConfig("deny_ip")){
+    if(!m_ClientManager.LoadConfig()){
         cout << "Can not find the deny_ip config file,program would exit" << endl;
         exit(-1);
     }
@@ -13,7 +13,7 @@ CFtpTransfer::CFtpTransfer(string ip,int port):CTransfer(ip,port){
 
 
 int CFtpTransfer::Accept(const int client_sockfd, const struct sockaddr_in &cliaddr) {
-    if(m_ClientManager.IsInBlackList(cliaddr.sin_addr.s_addr)){
+    if(!m_ClientManager.IsAccepted(cliaddr.sin_addr.s_addr)){
         cout << "From ip: " << inet_ntoa(cliaddr.sin_addr) << ":" << ntohs(cliaddr.sin_port) << " is diened." << endl;
         return -1;
     }

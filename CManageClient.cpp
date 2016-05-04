@@ -24,12 +24,27 @@ CManageClient::CManageClient(){
     AppendCommand(new CRMDCommand);
 }
 
-bool CManageClient::LoadConfig(string configfilename) {
-    string strValue = "{\"forbidden_ip\":[\"127.0.0.2\"]}";
+bool CManageClient::LoadConfig() {
+    FILE *file = fopen("allow_deny.config","r");
+    if(file == NULL){
+        cout << "allow_deny.config file is not exits." << endl;
+        exit(-1);
+    }
+    fseek(file,0,2);
+    long len = ftell(file);
+    fseek(file,0,0);
+    char *buf = new char[len];
+    fread(buf,1,len,file);
+    fclose(file);
+
     Json::Reader reader;
-    if(reader.parse(strValue,m_Config)){
+    if(reader.parse(buf,m_Config)){
+        delete buf;
+        m_AllowOrDeny = m_Config["bow"].asBool();   //true is black,false is white
+
         return true;
     }
+    delete buf;
     return false;
 }
 
@@ -83,9 +98,35 @@ CCommand* CManageClient::FindCommand(const string command) const{
 
 bool CManageClient::IsInBlackList(const in_addr_t ip) const{
     if(!m_Config.empty()){
-        Json::Value forbidden_ip = m_Config["forbidden_ip"];
+        Json::Value forbidden_ip = m_Config["black"];
         for(int i = 0;i < forbidden_ip.size();i++){
             string balst_ip = forbidden_ip[i].asString();
+            if(ip == inet_addr(balst_ip.c_str())){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+bool CManageClient::IsAccepted(in_addr_t ip) const {
+    if(m_AllowOrDeny){   //true is black,false is white
+        if(IsInBlackList(ip))
+            return false;
+        else
+            return true;
+    }
+    else{
+        return IsInWhiteList(ip);
+    }
+}
+
+bool CManageClient::IsInWhiteList(in_addr_t ip) const {
+    if(!m_Config.empty()){
+        Json::Value allow_ip = m_Config["white"];
+        for(int i = 0;i < allow_ip.size();i++){
+            string balst_ip = allow_ip[i].asString();
             if(ip == inet_addr(balst_ip.c_str())){
                 return true;
             }

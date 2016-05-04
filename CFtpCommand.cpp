@@ -8,7 +8,7 @@
 #include "CFtpCommand.h"
 #include "json/json.h"
 
-string CCommand::strInfo = "{\"user\":[{\"name\":\"root\",\"pass\":\"123456\",\"rootdir\":\"/home/ghost/\"}]}";
+
 
 bool CCommand::MatchCommand(string inCommand) {
     vector<string> v;
@@ -26,12 +26,31 @@ bool CCommand::MatchCommand(string inCommand) {
     return ret;
 }
 
+const string& CCommand::GetUserInfo(){
+    static string userInfo;
+    if(userInfo.empty()){
+        FILE *file = fopen("user_info.config","r");
+        if(file == NULL){
+            cout << "user_info.config file is not exits." << endl;
+            exit(-1);
+        }
+        fseek(file,0,2);
+        long len = ftell(file);
+        fseek(file,0,0);
+        char *buf = new char[len];
+        fread(buf,1,len,file);
+        fclose(file);
+        userInfo = string(buf);
+    }
+    return userInfo;
+}
+
 
 int CUSERCommand::doWhat(CClient *pClient) {
     if(!m_Args.empty()){
         Json::Value value;
         Json::Reader reader;
-        if(reader.parse(CCommand::strInfo,value)){
+        if(reader.parse(CCommand::GetUserInfo(),value)){
             Json::Value user = value["user"];
             for(int i = 0;i < user.size();i++){
                 string name = user[i]["name"].asString();
@@ -63,20 +82,22 @@ int CPASSCommand::doWhat(CClient *pClient) {
             if (!m_Args.empty()) {
                 Json::Value value;
                 Json::Reader reader;
-                if (reader.parse(CCommand::strInfo, value)) {
+                if (reader.parse(CCommand::GetUserInfo(), value)) {
                     Json::Value user = value["user"];
                     for (int i = 0; i < user.size(); i++) {
-                        string pass = user[i]["pass"].asString();
-                        if (pass == m_Args) {
-                            string ret = "230 Login successful.\r\n";
-                            pClient->SetUserDir(user[i]["rootdir"].asString());
-                            pClient->sendMsg(ret);
-                            pClient->SetClientState(PASS);
-                        }
-                        else{
-                            string ret = "530 Login incorrect.\r\n";
-                            pClient->sendMsg(ret);
-                            pClient->SetClientState(USER);
+                        if(user[i]["name"].asString() == pClient->GetClientName()){
+                            string pass = user[i]["pass"].asString();
+                            if (pass == m_Args) {
+                                string ret = "230 Login successful.\r\n";
+                                pClient->SetUserDir(user[i]["rootdir"].asString());
+                                pClient->sendMsg(ret);
+                                pClient->SetClientState(PASS);
+                            }
+                            else{
+                                string ret = "530 Login incorrect.\r\n";
+                                pClient->sendMsg(ret);
+                                pClient->SetClientState(USER);
+                            }
                         }
                     }
                 }
@@ -201,8 +222,11 @@ int CSIZECommand::doWhat(CClient *pClient) {
 
 int CPASVCommand::doWhat(CClient *pClient){
     if(pClient->GetClientState() >= PASS){
-        pClient->SetClientPasvDataTransfer(new CPasvDataTransfer("0.0.0.0",0));
-        pClient->GetClientPasvDataTransfer()->Run();
+        if(pClient->GetClientPasvDataTransfer() == NULL){
+            pClient->SetClientPasvDataTransfer(new CPasvDataTransfer("0.0.0.0",0));
+            pClient->GetClientPasvDataTransfer()->Run();
+        }
+
         string ip;
         int port;
         port = pClient->GetClientPasvDataTransfer()->GetIpAndPort(ip);
@@ -301,7 +325,7 @@ bool CLISTCommand::CreateFileDetalInfo(const char *name, char *buffer) {
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%s",ctime(&s.st_mtime));
     pTmp += strlen(pTmp);
-    pTmp--;
+    pTmp -= 2;
     sprintf(pTmp,"%s"," ");
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%s\r\n",name);
@@ -320,6 +344,8 @@ int CLISTCommand::doWhat(CClient *pClient) {
             bzero(buffer, BUFFER_SIZE);
             if ((strcmp(dirp->d_name, ".") == 0) || (strcmp(dirp->d_name, "..") == 0))
                 continue;
+            if(dirp->d_name[0] == '.')
+                continue;
             bzero(buffer,BUFFER_SIZE);
             CreateFileDetalInfo(dirp->d_name,buffer);
 
@@ -333,6 +359,7 @@ int CLISTCommand::doWhat(CClient *pClient) {
         pClient->GetClientPasvDataTransfer()->PostSignal();
 
         pClient->SetClientState(PASS);
+        pClient->SetClientPasvDataTransfer(NULL);
         return 1;
     }
     else{
@@ -356,6 +383,7 @@ int CSTORCommand::doWhat(CClient *pClient){
             pClient->GetClientPasvDataTransfer()->PostSignal();
 
             pClient->SetClientState(PASS);
+            pClient->SetClientPasvDataTransfer(NULL);
             return 1;
         }
         else{
@@ -395,6 +423,7 @@ int CRETRCommand::doWhat(CClient *pClient){
                 pClient->GetClientPasvDataTransfer()->PostSignal();
 
                 pClient->SetClientState(PASS);
+                pClient->SetClientPasvDataTransfer(NULL);
                 return 1;
             }
             else{
@@ -417,9 +446,16 @@ int CRETRCommand::doWhat(CClient *pClient){
 
 
 int CSYSTCommand::doWhat(CClient *pClient) {
-    string ret = "215 UNIX Type: L8\r\n";
-    pClient->sendMsg(ret);
-    return 1;
+    if(pClient->GetClientState() >= PASS) {
+        string ret = "215 UNIX Type: L8\r\n";
+        pClient->sendMsg(ret);
+        return 1;
+    }
+    else{
+        string ret = "530 Please login with USER and PASS.\r\n";
+        pClient->sendMsg(ret);
+        return -1;
+    }
 }
 
 int CTYPECommand::doWhat(CClient *pClient) {
@@ -570,23 +606,4 @@ int CRNTOCommand::doWhat(CClient *pClient) {
         return -1;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

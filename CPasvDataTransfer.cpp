@@ -56,7 +56,6 @@ void CPasvDataTransfer::Execute() {
     delete this;
 }
 
-
 int CPasvDataTransfer::DispatchCommand(int client_fd) {
     vector<string> v;
     SplitString(m_Msg,v,"#");

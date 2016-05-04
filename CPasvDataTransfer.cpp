@@ -84,7 +84,8 @@ int CPasvDataTransfer::DispatchCommand(int client_fd) {
         unsigned long sum_sec = 0;
         unsigned long sum = 0;
         while((n = fread(buffer,1,BUFFER_SIZE,file)) > 0){
-            send(m_CliSock,buffer,n,0);
+            if(send(m_CliSock,buffer,n,0) <= 0)
+                break;
             sum_sec += n;
             sum += n;
             current_time = time(NULL);

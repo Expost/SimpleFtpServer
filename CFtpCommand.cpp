@@ -305,27 +305,26 @@ bool CLISTCommand::CreateFileDetalInfo(const char *name, char *buffer) {
     else
         *pTmp = '-';
     pTmp++;
-    sprintf(pTmp,"%s"," ");
-    pTmp += strlen(pTmp);
-    sprintf(pTmp,"%2ld",s.st_nlink);
+    static char *mons[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+    sprintf(pTmp,"%5ld",s.st_nlink);
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%s"," ");
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%4d",s.st_uid);
     pTmp += strlen(pTmp);
-    sprintf(pTmp,"%s"," ");
+    sprintf(pTmp,"%s","     ");
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%4d",s.st_gid);
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%s"," ");
     pTmp += strlen(pTmp);
-    sprintf(pTmp,"%6ld",s.st_size);
+    sprintf(pTmp,"%12ld",s.st_size);
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%s"," ");
     pTmp += strlen(pTmp);
-    sprintf(pTmp,"%s",ctime(&s.st_mtime));
+    struct tm *p_tm = gmtime(&s.st_mtime);
+    sprintf(pTmp,"%s %.2d %.2d:%.2d",mons[p_tm->tm_mon],p_tm->tm_mday,p_tm->tm_hour,p_tm->tm_min);
     pTmp += strlen(pTmp);
-    pTmp -= 2;
     sprintf(pTmp,"%s"," ");
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%s\r\n",name);
@@ -337,16 +336,25 @@ int CLISTCommand::doWhat(CClient *pClient) {
     if(pClient->GetClientState() >= PASV) {
         string msg = "SENDLIST#";
         chdir(pClient->GetUserDir().c_str());
-        DIR *dir = opendir(pClient->GetUserDir().c_str());
-        struct dirent *dirp;
+
+        if(!m_Args.empty()){
+            if(m_Args[0] != '-'){
+                chdir(m_Args.c_str());
+            }
+        }
         char buffer[BUFFER_SIZE];
+        bzero(buffer, BUFFER_SIZE);
+        getcwd(buffer,BUFFER_SIZE);
+
+        DIR *dir = opendir(buffer);
+        struct dirent *dirp;
+
         while ((dirp = readdir(dir)) != NULL) {
             bzero(buffer, BUFFER_SIZE);
             if ((strcmp(dirp->d_name, ".") == 0) || (strcmp(dirp->d_name, "..") == 0))
                 continue;
             if(dirp->d_name[0] == '.')
                 continue;
-            bzero(buffer,BUFFER_SIZE);
             CreateFileDetalInfo(dirp->d_name,buffer);
 
             msg += string(buffer);

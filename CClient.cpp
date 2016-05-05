@@ -97,3 +97,16 @@ bool CClient::SetClientLastFileName(const string &name){
 string CClient::GetClientLastFileName() const{
     return m_LastFileName;
 }
+
+bool CClient::SetClientPortIpAndPort(const string &ip, const int port) {
+    m_PortIp = ip;
+    m_PortPort = port;
+    return true;
+}
+
+
+int CClient::GetClientPortIpAndPort(string &ip) {
+    ip = m_PortIp;
+    m_PortIp.clear();
+    return m_PortPort;
+}

@@ -44,6 +44,7 @@ public:
 class CLISTCommand:public CCommand{
 private:
     bool CreateFileDetalInfo(const char *name,char *buffer);
+    bool GetDirInfo(CClient *pClient,string &msg);
 public:
     CLISTCommand(){m_Command = "LIST";}
     int doWhat(CClient *pClient);
@@ -166,5 +167,16 @@ public:
     CRMDCommand(){m_Command = "RMD";}
     int doWhat(CClient *pClient);
 };
+
+class CPORTCommand:public CCommand{
+private:
+
+public:
+    CPORTCommand(){m_Command = "PORT";}
+    int doWhat(CClient *pClient);
+};
+
+
+
 
 #endif //SIMPLEFTPSERVER_CFTPCOMMAND_H

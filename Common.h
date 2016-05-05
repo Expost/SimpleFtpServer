@@ -26,6 +26,7 @@ typedef enum{
     USER,
     PASS,
     RNFR,
+    PORT,
     PASV
 } EFTPSTATE;
 

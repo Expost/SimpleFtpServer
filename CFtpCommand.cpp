@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include "CFtpCommand.h"
 #include "json/json.h"
-
+#include "CPortDataTransfer.h"
 
 
 bool CCommand::MatchCommand(string inCommand) {
@@ -331,34 +331,39 @@ bool CLISTCommand::CreateFileDetalInfo(const char *name, char *buffer) {
     return true;
 }
 
+bool CLISTCommand::GetDirInfo(CClient *pClient, string &msg) {
+    msg = "SENDLIST#";
+    chdir(pClient->GetUserDir().c_str());
+
+    if(!m_Args.empty()){
+        if(m_Args[0] != '-'){
+            chdir(m_Args.c_str());
+        }
+    }
+    char buffer[BUFFER_SIZE];
+    bzero(buffer, BUFFER_SIZE);
+    getcwd(buffer,BUFFER_SIZE);
+
+    DIR *dir = opendir(buffer);
+    struct dirent *dirp;
+
+    while ((dirp = readdir(dir)) != NULL) {
+        bzero(buffer, BUFFER_SIZE);
+        if ((strcmp(dirp->d_name, ".") == 0) || (strcmp(dirp->d_name, "..") == 0))
+            continue;
+        if(dirp->d_name[0] == '.')
+            continue;
+        CreateFileDetalInfo(dirp->d_name,buffer);
+
+        msg += string(buffer);
+    }
+    return true;
+}
 
 int CLISTCommand::doWhat(CClient *pClient) {
-    if(pClient->GetClientState() >= PASV) {
-        string msg = "SENDLIST#";
-        chdir(pClient->GetUserDir().c_str());
-
-        if(!m_Args.empty()){
-            if(m_Args[0] != '-'){
-                chdir(m_Args.c_str());
-            }
-        }
-        char buffer[BUFFER_SIZE];
-        bzero(buffer, BUFFER_SIZE);
-        getcwd(buffer,BUFFER_SIZE);
-
-        DIR *dir = opendir(buffer);
-        struct dirent *dirp;
-
-        while ((dirp = readdir(dir)) != NULL) {
-            bzero(buffer, BUFFER_SIZE);
-            if ((strcmp(dirp->d_name, ".") == 0) || (strcmp(dirp->d_name, "..") == 0))
-                continue;
-            if(dirp->d_name[0] == '.')
-                continue;
-            CreateFileDetalInfo(dirp->d_name,buffer);
-
-            msg += string(buffer);
-        }
+    if(pClient->GetClientState() == PASV) {
+        string msg;
+        GetDirInfo(pClient,msg);
         string ret = "150 Here comes the directory listing.\r\n";
 
         pClient->sendMsg(ret);
@@ -370,6 +375,20 @@ int CLISTCommand::doWhat(CClient *pClient) {
         pClient->SetClientPasvDataTransfer(NULL);
         return 1;
     }
+    else if(pClient->GetClientState() == PORT){
+        string msg;
+        GetDirInfo(pClient,msg);
+        string ip;
+        int port;
+        port = pClient->GetClientPortIpAndPort(ip);
+        string ret = "150 Here comes the directory listing.\r\n";
+        pClient->sendMsg(ret);
+        CPortDataTransfer *c = new CPortDataTransfer(ip,port);
+        c->SetMsg(msg);
+        c->SetControlSock(pClient->GetClientfd());
+        c->Run();
+        pClient->SetClientState(PASS);
+    }
     else{
         string ret = "425 Use PORT or PASV first.\r\n";
         pClient->sendMsg(ret);
@@ -378,7 +397,7 @@ int CLISTCommand::doWhat(CClient *pClient) {
 }
 
 int CSTORCommand::doWhat(CClient *pClient){
-    if(pClient->GetClientState() >= PASV){
+    if(pClient->GetClientState() == PASV){
         string msg = "RECVFILE#";
         int r = chdir(pClient->GetUserDir().c_str());
         if(r == 0){
@@ -399,6 +418,31 @@ int CSTORCommand::doWhat(CClient *pClient){
             exit(-1);
         }
     }
+    else if(pClient->GetClientState() == PORT){
+        string msg = "RECVFILE#";
+        int r = chdir(pClient->GetUserDir().c_str());
+        if(r == 0){
+            msg += pClient->GetUserDir();
+            msg = msg + "#" + m_Args;
+
+            string ip;
+            int port;
+            string ret = "150 Ok to send data.\r\n";
+            pClient->sendMsg(ret);
+            port = pClient->GetClientPortIpAndPort(ip);
+            CPortDataTransfer *c = new CPortDataTransfer(ip,port);
+            c->SetMsg(msg);
+            c->SetControlSock(pClient->GetClientfd());
+            c->Run();
+            pClient->SetClientState(PASS);
+
+            return 1;
+        }
+        else{
+            cout << "Current user dir is error,now program will exit." << endl;
+            exit(-1);
+        }
+    }
     else{
         string ret = "425 Use PORT or PASV first.\r\n";
         pClient->sendMsg(ret);
@@ -407,7 +451,7 @@ int CSTORCommand::doWhat(CClient *pClient){
 }
 
 int CRETRCommand::doWhat(CClient *pClient){
-    if(pClient->GetClientState() >= PASV){
+    if(pClient->GetClientState() == PASV){
         string msg = "SENDFILE#";
         int r = chdir(pClient->GetUserDir().c_str());
         if(r == 0){
@@ -432,6 +476,49 @@ int CRETRCommand::doWhat(CClient *pClient){
 
                 pClient->SetClientState(PASS);
                 pClient->SetClientPasvDataTransfer(NULL);
+                return 1;
+            }
+            else{
+                string ret = "550 Failed to open file.\r\n";
+                pClient->sendMsg(ret);
+                return -1;
+            }
+        }
+        else{
+            cout << "Current user dir is error,now program will exit." << endl;
+            exit(-1);
+        }
+    }
+    else if(pClient->GetClientState() == PORT){
+        string msg = "SENDFILE#";
+        int r = chdir(pClient->GetUserDir().c_str());
+        if(r == 0){
+            FILE *file = fopen(m_Args.c_str(),"rb");
+            if(file != NULL){
+                fseek(file,0,2);
+                long len = ftell(file);
+                fclose(file);
+                char buffer[BUFFER_SIZE];
+                bzero(buffer,BUFFER_SIZE);
+                sprintf(buffer,"150 Opening BINARY mode data connection for %s (%ld bytes).\r\n",
+                        m_Args.c_str(),len);
+
+                string ret(buffer);
+                pClient->sendMsg(ret);
+
+                msg += pClient->GetUserDir();
+                msg = msg + "#" + m_Args;
+                string ip;
+                int port;
+
+                port = pClient->GetClientPortIpAndPort(ip);
+
+                CPortDataTransfer *c = new CPortDataTransfer(ip,port);
+                c->SetMsg(msg);
+                c->SetControlSock(pClient->GetClientfd());
+                c->Run();
+
+                pClient->SetClientState(PASS);
                 return 1;
             }
             else{
@@ -615,3 +702,29 @@ int CRNTOCommand::doWhat(CClient *pClient) {
     }
 }
 
+int CPORTCommand::doWhat(CClient *pClient) {
+    if(pClient->GetClientState() >= PASS){
+        if(!m_Args.empty()){
+            vector<string> v;
+            SplitString(m_Args,v,",");
+            string ip = v[0] + "." + v[1] + "." + v[2] + "." + v[3];
+            int port = atoi(v[4].c_str()) * 256 + atoi(v[5].c_str());
+            pClient->SetClientPortIpAndPort(ip,port);
+            pClient->SetClientState(PORT);
+
+            string ret = "200 PORT command successful.\r\n";
+            pClient->sendMsg(ret);
+            return 1;
+        }
+        else{
+            string ret = "500 Illegal PORT command.\r\n";
+            pClient->sendMsg(ret);
+            return -1;
+        }
+    }
+    else{
+        string ret = "530 Please login with USER and PASS.\r\n";
+        pClient->sendMsg(ret);
+        return -1;
+    }
+}

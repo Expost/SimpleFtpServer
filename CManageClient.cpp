@@ -22,6 +22,7 @@ CManageClient::CManageClient(){
     AppendCommand(new CRNFRCommand);
     AppendCommand(new CRNTOCommand);
     AppendCommand(new CRMDCommand);
+    AppendCommand(new CPORTCommand);
 }
 
 bool CManageClient::LoadConfig() {

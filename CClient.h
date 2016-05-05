@@ -17,6 +17,9 @@ private:
     string m_Name;
     string m_LastFileName;
     CPasvDataTransfer *m_PasvDataTransfer;
+
+    string m_PortIp;
+    int m_PortPort;
 public:
     CClient(int flag);
     ~CClient();
@@ -26,6 +29,9 @@ public:
     ssize_t sendMsg(const string &msg);
 
     bool IsMe(int flag);
+
+    bool SetClientPortIpAndPort(const string &ip,const int port);
+    int GetClientPortIpAndPort(string &ip);
 
     bool SetClientPasvDataTransfer(CPasvDataTransfer *pDataTransfer);
     CPasvDataTransfer *GetClientPasvDataTransfer() const;

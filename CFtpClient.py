@@ -8,11 +8,11 @@ class CTransfer:
 		self.ip = ip
 		self.port = port
 		self.s = None
-		self.mode = None    # passive is 1,port is 0
+		self.mode = 0    # passive is 1,port is 0
 		self.command = {"delete":self.do_delete,
 		"cd":self.do_cd,"get":self.do_get,"help":self.do_help,"ls":self.do_ls,"mkdir":self.do_mkdir,
 		"passive":self.do_passive,"pwd":self.do_pwd,"quit":self.do_quit,"rename":self.do_rename,
-		"rmdir":self.do_rmdir,"send":self.do_send,"size":self.do_size,"recv":self.do_get,
+		"rmdir":self.do_rmdir,"port":self.do_port,"send":self.do_send,"size":self.do_size,"recv":self.do_get,
 		"put":self.do_send}
 	def send(self,buf):
 		try:
@@ -105,7 +105,33 @@ class CTransfer:
 					self.printf(self.recv())
 					self.printf(self.recv())
 			elif self.mode == 0:
-				print "port mode is not supported."
+				sersocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+				sersocket.bind(("127.0.0.1",0))
+				port_ip,port_port = sersocket.getsockname()
+				port_arg = port_ip.replace(".",",") + "," + str(port_port / 256) + "," + str(port_port % 256)
+				self.send("PORT " + port_arg + "\r\n")
+
+				self.printf(self.recv())
+				self.send("TYPE I\r\n")
+				self.printf(self.recv())
+
+				self.send("RETR %s\r\n" %l[1])
+
+				sersocket.listen(5)
+				clisocket,cliaddr = sersocket.accept()
+				with open(l[1],"wb") as f:
+					while 1:
+						buf = clisocket.recv(4096)
+						if buf:
+							f.write(buf)
+						else:
+							break
+
+				clisocket.close()
+				sersocket.close()
+
+				self.printf(self.recv())
+				self.printf(self.recv())
 
 	def do_help(self,command):
 		print "Now supported command is:"
@@ -142,7 +168,27 @@ class CTransfer:
 				print "ftp server can not support pasv mode,please use port mode."
 
 		elif self.mode == 0:
-			print "port mode is not supported."
+			sersocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+			sersocket.bind(("127.0.0.1",0))
+			port_ip,port_port = sersocket.getsockname()
+			port_arg = port_ip.replace(".",",") + "," + str(port_port / 256) + "," + str(port_port % 256)
+			self.send("PORT " + port_arg + "\r\n")
+
+			self.printf(self.recv())
+			self.send("TYPE A\r\n")
+			self.printf(self.recv())
+			self.send("LIST\r\n")
+
+			sersocket.listen(5)
+			clisocket,cliaddr = sersocket.accept()
+			dirinfo = clisocket.recv(1000000)
+
+			clisocket.close()
+			sersocket.close()
+
+			self.printf(self.recv())
+			self.printf(dirinfo)
+			self.printf(self.recv())
 
 	def do_mkdir(self,command):
 		l = command.split()
@@ -162,6 +208,17 @@ class CTransfer:
 		else:
 			self.mode = 1
 			print "passive mode on."
+
+	def do_port(self,command):
+		if self.mode == 1:
+			self.mode = 0
+			print "port mode on"
+		elif self.mode == 0:
+			self.mode = 1
+			print "port mode off"
+		else:
+			self.mode = 0
+			print "port mode on"
 
 	def do_pwd(self,command):
 		self.send("PWD\r\n")
@@ -225,8 +282,30 @@ class CTransfer:
 					self.printf(self.recv())
 					self.printf(self.recv())
 			elif self.mode == 0:
-				print "port mode is not supported."
+				sersocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+				sersocket.bind(("127.0.0.1",0))
+				port_ip,port_port = sersocket.getsockname()
+				port_arg = port_ip.replace(".",",") + "," + str(port_port / 256) + "," + str(port_port % 256)
+				self.send("PORT " + port_arg + "\r\n")
 
+				self.printf(self.recv())
+				self.send("TYPE I\r\n")
+				self.printf(self.recv())
+
+				self.send("STOR %s\r\n" %l[1])
+
+				sersocket.listen(5)
+				clisocket,cliaddr = sersocket.accept()
+
+				with open(l[1],"rb") as f:
+					for data in f:
+						clisocket.send(data)
+
+				clisocket.close()
+				sersocket.close()
+
+				self.printf(self.recv())
+				self.printf(self.recv())
 	def do_size(self,command):
 		l = command.split()
 		if len(l)  == 2:
@@ -238,10 +317,12 @@ class CTransfer:
 	def exc_command(self):
 		while 1:
 			command = raw_input("ftp> ")
-			if command.split()[0].lower() in self.command:
-				self.command[command.split()[0].lower()](command)
-			else:
-				print "?Invalid command,please use help to see suported command."
+			command = command.strip()
+			if command:
+				if command.split()[0].lower() in self.command:
+					self.command[command.split()[0].lower()](command)
+				else:
+					print "?Invalid command,please use help to see suported command."
 
 	def run(self):
 		try:

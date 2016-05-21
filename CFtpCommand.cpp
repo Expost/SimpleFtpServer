@@ -41,6 +41,7 @@ const string& CCommand::GetUserInfo(){
         fread(buf,1,len,file);
         fclose(file);
         userInfo = string(buf);
+        delete [] buf;
     }
     return userInfo;
 }

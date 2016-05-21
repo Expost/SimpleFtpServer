@@ -13,12 +13,13 @@
 class CTransfer {
 protected:
     int sock;
-    int maxi;
+
 private:
     struct sockaddr_in sockaddr;
     std::string ip;
     int port;
 
+    int maxi;
     struct pollfd pollfds[OPEN_MAX];
     int nready;
 

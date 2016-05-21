@@ -10,6 +10,7 @@ CClient::CClient(int flag):m_Flag(flag),m_PasvDataTransfer(NULL){
 }
 
 CClient::~CClient() {
+    //cout << "one client is delete." << endl;
     close(m_Flag);
 }
 

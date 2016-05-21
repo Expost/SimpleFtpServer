@@ -5,7 +5,8 @@
 
 #include "CTransfer.h"
 
-CTransfer::CTransfer(std::string ip,int port): port(port),ip(ip),maxi(0),nready(0){
+CTransfer::CTransfer(std::string ip,int port)
+        :port(port),ip(ip),maxi(0),nready(0){
     bzero(&sockaddr,sizeof(sockaddr));
     sockaddr.sin_addr.s_addr = inet_addr(ip.c_str());
     sockaddr.sin_port = htons(port);
@@ -53,7 +54,9 @@ void CTransfer::run(){
     }
 
     while(1){
+        //cout << "start poll." << endl;
         nready = poll(pollfds,maxi + 1,-1);
+        //cout << "end poll and nread is: " << nready << endl;
         if(nready == -1){
             perror("poll error:");
             exit(-1);
@@ -63,6 +66,7 @@ void CTransfer::run(){
             socklen_t cliaddrlen = sizeof(cliaddr);
             bzero(&cliaddr,cliaddrlen);
             int clisockfd;
+            //cout << "maxi is: " << maxi << " and max_con is: " << max_connections << endl;
             if((clisockfd = accept(sock,(struct sockaddr*)&cliaddr,&cliaddrlen)) == -1) {
                 if(errno == EINTR){
                     continue;
@@ -72,7 +76,6 @@ void CTransfer::run(){
                     exit(-1);
                 }
             }
-
             if(Accept(clisockfd, cliaddr) == 1){
                 int i = 0;
                 for(i = 1;i < OPEN_MAX;i++){
@@ -98,9 +101,14 @@ void CTransfer::run(){
         for(int i = 1;i <= maxi;i++){
             if(pollfds[i].fd < 0)
                 continue;
+            //cout << "fd is " << pollfds[i].fd << " and revent is " << pollfds[i].revents << endl;
             if(pollfds[i].revents & POLLIN){
                 Receive(pollfds[i].fd);
             }
+            if(pollfds[i].revents & POLLNVAL){
+                pollfds[i].fd = -1;
+            }
+
         }
     }
 }

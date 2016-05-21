@@ -13,8 +13,12 @@ class CFtpTransfer:public CTransfer{
 private:
     CManageClient m_ClientManager;
     long int ReceiveLine(const int client_sockfd,char *pBuffer,int len);
+
+
+    int m_MaxConnections;
+    int m_CurrentConnetions;
 public:
-    CFtpTransfer(const string ip,const int port);
+    CFtpTransfer(const string ip,const int port,const int max_connection);
     int Accept(const int client_sockfd, const struct sockaddr_in &cliaddr);
     int Receive(const int client_sockfd);
 };

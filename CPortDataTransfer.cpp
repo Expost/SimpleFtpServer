@@ -25,10 +25,22 @@ ssize_t CPortDataTransfer::ControlSockSendMsg(const string &msg){
 
 void CPortDataTransfer::Execute() {
     int clientsock = socket(AF_INET,SOCK_STREAM,0);
-    struct sockaddr_in clientaddr;
+    struct sockaddr_in clientaddr,bindaddr;
     clientaddr.sin_addr.s_addr = inet_addr(m_RemoteIp.c_str());
     clientaddr.sin_port = htons(m_RemotePort);
     clientaddr.sin_family = AF_INET;
+
+    bindaddr.sin_port = htons(5001);
+    bindaddr.sin_family = AF_INET;
+    bindaddr.sin_addr.s_addr = INADDR_ANY;
+
+    int opt = 1;
+    setsockopt(clientsock, SOL_SOCKET, SO_REUSEADDR, (const void *)&opt, sizeof(opt));
+
+    if(bind(clientsock,(struct sockaddr*)&bindaddr,sizeof(bindaddr)) == -1){
+        perror("bind error ");
+    }
+
 
     if(0 == connect(clientsock,(struct sockaddr*)&clientaddr,sizeof(clientaddr))){
         int ret = DispatchCommand(clientsock);

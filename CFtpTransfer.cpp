@@ -4,7 +4,8 @@
 
 #include "CFtpTransfer.h"
 
-CFtpTransfer::CFtpTransfer(string ip,int port):CTransfer(ip,port){
+CFtpTransfer::CFtpTransfer(const string ip,const int port,const int max_connection)
+        :CTransfer(ip,port),m_CurrentConnetions(0),m_MaxConnections(max_connection){
     if(!m_ClientManager.LoadConfig()){
         cout << "Can not find the deny_ip config file,program would exit" << endl;
         exit(-1);
@@ -13,6 +14,11 @@ CFtpTransfer::CFtpTransfer(string ip,int port):CTransfer(ip,port){
 
 
 int CFtpTransfer::Accept(const int client_sockfd, const struct sockaddr_in &cliaddr) {
+    //cout << "Current con is: " << m_CurrentConnetions << " Max con is: " << m_MaxConnections << endl;
+    if(m_CurrentConnetions >= m_MaxConnections) {
+        cout << "Server is in max connections." << endl;
+        return -1;
+    }
     if(!m_ClientManager.IsAccepted(cliaddr.sin_addr.s_addr)){
         cout << "From ip: " << inet_ntoa(cliaddr.sin_addr) << ":" << ntohs(cliaddr.sin_port) << " is diened." << endl;
         return -1;
@@ -21,6 +27,7 @@ int CFtpTransfer::Accept(const int client_sockfd, const struct sockaddr_in &clia
     m_ClientManager.AppendClient(pClient);
     pClient->sendWlcomeMsg();
 
+    m_CurrentConnetions++;
     cout << "Append a new client with ip:" << inet_ntoa(cliaddr.sin_addr) << ":" << ntohs(cliaddr.sin_port) << endl;
     return 1;
 }
@@ -40,6 +47,8 @@ int CFtpTransfer::Receive(const int client_sockfd) {
                 EFTPSTATE state = pClient->GetClientState();
                 if(state == QUIT){
                     m_ClientManager.EarseClient(client_sockfd);
+                    m_CurrentConnetions--;
+                    //cout << "one con disconnected and current con is: " << m_CurrentConnetions << endl;
                 }
             }
             else{
@@ -49,7 +58,8 @@ int CFtpTransfer::Receive(const int client_sockfd) {
     }
     else{
         m_ClientManager.EarseClient(client_sockfd);
-        close(client_sockfd);
+        m_CurrentConnetions--;
+        //cout << "one con disconnected and current con is: " << m_CurrentConnetions << endl;
     }
 }
 

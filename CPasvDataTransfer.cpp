@@ -4,6 +4,7 @@
 
 #include <netdb.h>
 #include <semaphore.h>
+#include <ifaddrs.h>
 #include "CPasvDataTransfer.h"
 
 
@@ -31,12 +32,28 @@ int CPasvDataTransfer::GetIpAndPort(string &ip) {
         cout << "Get sockname error: " << strerror(errno) << endl;
         exit(-1);
     }
-    char hname[128];
-    struct hostent *hent;
-    gethostname(hname,sizeof(hname));
-    hent = gethostbyname(hname);
-    ip = string(inet_ntoa(*(struct in_addr*)(hent->h_addr_list[0])));
+    struct ifaddrs *ifAddrStruct = NULL;
+    void *tmpAddrPtr = NULL;
 
+    getifaddrs(&ifAddrStruct);
+    char addressBuffer[INET_ADDRSTRLEN];
+    while(ifAddrStruct != NULL){
+        if(ifAddrStruct->ifa_addr->sa_family == AF_INET){
+            tmpAddrPtr = &((struct sockaddr_in *)ifAddrStruct->ifa_addr)->sin_addr;
+            bzero(addressBuffer,INET_ADDRSTRLEN);
+            inet_ntop(AF_INET,tmpAddrPtr,addressBuffer,INET_ADDRSTRLEN);
+            if(strcmp(addressBuffer,"127.0.0.1") != 0 && strlen(addressBuffer) > 1)
+                break;
+        }
+        ifAddrStruct = ifAddrStruct->ifa_next;
+    }
+
+    if(strlen(addressBuffer) > 1)
+        ip = string(addressBuffer);
+    else{
+        cout << "Get local ip error,now exit." << endl;
+        exit(-1);
+    }
     return ntohs(sin.sin_port);
 }
 

@@ -306,7 +306,7 @@ bool CLISTCommand::CreateFileDetalInfo(const char *name, char *buffer) {
     else
         *pTmp = '-';
     pTmp++;
-    static char *mons[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+    static const char *mons[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
     sprintf(pTmp,"%5ld",s.st_nlink);
     pTmp += strlen(pTmp);
     sprintf(pTmp,"%s"," ");
